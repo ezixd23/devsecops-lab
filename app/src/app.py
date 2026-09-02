@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 
-AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
+AWS_ACCESS_KEY = "AKIAF3K5QZWXNPRTVYCM"
 
 app = Flask(__name__)
 
