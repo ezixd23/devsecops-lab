@@ -76,3 +76,20 @@ jobs:
 
       - name: Run pip-audit (SCA)
         run: pip-audit -r requirements.txt
+  container-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t devsecops-lab:ci -f docker/Dockerfile .
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: devsecops-lab:ci
+          version: v0.74.0
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

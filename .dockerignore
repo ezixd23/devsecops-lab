@@ -1,0 +1,19 @@
+# Python
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+app/tests/
+
+# Not needed inside the image
+.git/
+.github/
+terraform/
+kubernetes/
+security/
+sbom/
+docs/
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+.env
