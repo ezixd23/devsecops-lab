@@ -10,12 +10,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     env:
       IMAGE: ghcr.io/${{ github.repository_owner }}/devsecops-lab
       TAG: ${{ github.sha }}
       GH_ACTOR: ${{ github.actor }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SOURCE_URL: https://github.com/${{ github.repository }}
+      SIGNER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/publish.yml@refs/heads/main
     steps:
       - name: Checkout code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -37,3 +39,15 @@ jobs:
 
       - name: Push image
         run: docker push "$IMAGE:$TAG"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
+      - name: Sign and verify image (keyless)
+        run: |
+          DIGEST_REF=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:$TAG")
+          echo "Signing $DIGEST_REF"
+          cosign sign --yes "$DIGEST_REF"
+          cosign verify "$DIGEST_REF" \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
