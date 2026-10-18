@@ -16,3 +16,4 @@ __pycache__/
 # IDE / OS
 .vscode/
 .DS_Store
+sbom/*.json
