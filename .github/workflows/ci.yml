@@ -93,3 +93,12 @@ jobs:
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+      
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: devsecops-lab:ci
+          format: cyclonedx-json
+          syft-version: v1.54.1
+          artifact-name: sbom.cdx.json
+          output-file: sbom.cdx.json
