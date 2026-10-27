@@ -12,6 +12,7 @@ spec:
       labels:
         app: devsecops-lab
     spec:
+      serviceAccountName: devsecops-lab
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -23,6 +24,9 @@ spec:
           image: ghcr.io/ezixd23/devsecops-lab
           ports:
             - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: app-config
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -47,3 +51,11 @@ spec:
               port: 5000
             initialDelaySeconds: 10
             periodSeconds: 10
+          volumeMounts:
+            - name: app-secret
+              mountPath: /etc/app-secret
+              readOnly: true
+      volumes:
+        - name: app-secret
+          secret:
+            secretName: app-secret

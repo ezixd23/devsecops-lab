@@ -7,3 +7,7 @@ resources:
 images:
   - name: ghcr.io/ezixd23/devsecops-lab
     digest: sha256:f55d85575294ffe1317ac3b462f61ab013655d889a3bf997b95f8e3c4a49e03d
+configMapGenerator:
+  - name: app-config
+    literals:
+      - APP_ENV=production
