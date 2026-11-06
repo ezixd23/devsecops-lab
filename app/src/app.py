@@ -34,5 +34,12 @@ def ping():
     )
     return result.stdout
 
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    return response
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000) # nosemgrep: avoid_app_run_with_bad_host -- intentional: binds inside Docker container, exposure controlled by port mapping
