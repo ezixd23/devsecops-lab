@@ -12,4 +12,4 @@ COPY --from=builder /install /usr/local
 COPY app/src/ .
 USER 10001
 EXPOSE 5000
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--worker-tmp-dir", "/dev/shm", "--no-control-socket", "app:app"]
