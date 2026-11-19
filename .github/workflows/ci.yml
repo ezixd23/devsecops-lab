@@ -102,3 +102,57 @@ jobs:
           syft-version: v1.54.1
           artifact-name: sbom.cdx.json
           output-file: sbom.cdx.json
+  promotion-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/ezixd23/devsecops-lab
+      ZAP: ghcr.io/zaproxy/zaproxy@sha256:9624669db72f54d86c4b46a7064518bd9bf79d8c61a4c31befa9923489f328af
+      BASE_REF: ${{ github.base_ref }}
+      SIGNER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/publish.yml@refs/heads/main
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Detect production digest change
+        id: detect
+        run: |
+          FILE=kubernetes/production/kustomization.yaml
+          NEW=$(grep -oE 'sha256:[0-9a-f]{64}' "$FILE" | head -1)
+          OLD=$(git show "origin/$BASE_REF:$FILE" | grep -oE 'sha256:[0-9a-f]{64}' | head -1)
+          echo "base: $OLD"
+          echo "head: $NEW"
+          if [ "$NEW" = "$OLD" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No production promotion in this PR."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "digest=$NEW" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Cosign
+        if: steps.detect.outputs.changed == 'true'
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
+      - name: Verify signature of the candidate digest
+        if: steps.detect.outputs.changed == 'true'
+        env:
+          DIGEST: ${{ steps.detect.outputs.digest }}
+        run: |
+          cosign verify "$IMAGE@$DIGEST" \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+      - name: DAST of the candidate image (staging)
+        if: steps.detect.outputs.changed == 'true'
+        env:
+          DIGEST: ${{ steps.detect.outputs.digest }}
+        run: |
+          docker run -d --name candidate -p 8081:5000 "$IMAGE@$DIGEST"
+          sleep 5
+          mkdir -p /tmp/zap-wrk && chmod 777 /tmp/zap-wrk
+          cp security/zap/zap-rules.conf /tmp/zap-wrk/
+          docker run --rm --network host -v /tmp/zap-wrk:/zap/wrk:rw "$ZAP" \
+            zap-baseline.py -t http://localhost:8081 -c zap-rules.conf -I
